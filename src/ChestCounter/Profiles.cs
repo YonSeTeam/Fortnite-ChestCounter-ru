@@ -22,7 +22,7 @@ public static class Profiles
         {
             var latest = g.OrderByDescending(When).First();
             var name = g.OrderByDescending(When).Select(m => m.PlayerName).FirstOrDefault(n => !string.IsNullOrWhiteSpace(n));
-            return new Profile(g.Key, name ?? L.T("Compte inconnu", "Unknown account", "Cuenta desconocida"), g.Count(), g.Sum(m => m.ChestsOpened), When(latest));
+            return new Profile(g.Key, name ?? L.T("Compte inconnu", "Unknown account", "Cuenta desconocida", "Неизвестный аккаунт"), g.Count(), g.Sum(m => m.ChestsOpened), When(latest));
         })
         .OrderByDescending(p => p.LastPlayed)
         .ToList();
@@ -205,5 +205,5 @@ public static class Profiles
     }
 
     public static string Describe(Profile p) =>
-        $"{p.Name}  ({L.Count(p.Matches, "partie", "parties", "match", "matches", "partida", "partidas")}, {L.Count(p.Chests, "coffre", "chest", "cofre")})";
+        $"{p.Name}  ({L.Count(p.Matches, "partie", "parties", "match", "matches", "partida", "partidas", "матч|матча|матчей")}, {L.Count(p.Chests, "coffre", "chest", "cofre", "сундук|сундука|сундуков")})";
 }

@@ -8,6 +8,8 @@ public static class AppInfo
     public static string VersionText => $"{Version.Major}.{Version.Minor}.{Math.Max(0, Version.Build)}";
 
     public const string Repo = "LED-N/Fortnite-ChestCounter";
+    /// <summary>Where the Russian build looks for its own updates (releases of this fork); live data and pictures still come from <see cref="Repo"/>.</summary>
+    public const string UpdateRepo = "Arseniy07955/Fortnite-ChestCounter-ru";
     public static string RepoUrl => "https://github.com/" + Repo;
     public static string IssuesUrl => RepoUrl + "/issues";
 
