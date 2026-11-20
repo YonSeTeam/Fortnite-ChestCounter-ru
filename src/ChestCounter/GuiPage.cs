@@ -71,6 +71,26 @@ public static class GuiPage
             "Your chests + those of all your teammates (random ones too), on the overlay and the home tab.",
             "Tus cofres + los de todos tus compañeros (también los aleatorios), en el overlay y el inicio.",
             "Твои сундуки + сундуки всех твоих напарников (в том числе случайных) — на оверлее и на главной вкладке."),
+        ["shareCoverage"] = L.T("Chiffres exacts : {0} sur {1} coéquipiers (le reste est estimé)", "Exact figures: {0} of {1} teammates (the rest is estimated)", "Cifras exactas: {0} de {1} compañeros (el resto es estimado)", "Точные данные: {0} из {1} напарников (остальные оценены)"),
+        ["friends"] = L.T("Toi + amis", "You + friends", "Tú + amigos", "Ты + друзья"),
+        ["friendsSub"] = L.T("tes coffres + {0} de tes amis (chiffres exacts)", "your chests + {0} from friends (exact figures)", "tus cofres + {0} de tus amigos (cifras exactas)", "твои сундуки + {0} от друзей (точные данные)"),
+        ["onlineTitle"] = L.T("Échange en ligne", "Online exchange", "Intercambio en línea", "Онлайн-обмен"),
+        ["onlineHelp"] = L.T("Après chaque partie, ton compteur envoie au serveur ton Epic ID, ton pseudo, le nombre de tes coffres et les Epic ID de tes coéquipiers. Tu reçois le chiffre exact d'un coéquipier seulement si vous vous êtes déclarés mutuellement dans cette partie. Désactivé par défaut.",
+            "After each match your counter sends the server your Epic ID, your name, your chest count and the Epic IDs of your teammates. You get a teammate's exact figure only if you both listed each other in that match. Off by default.",
+            "Tras cada partida tu contador envía al servidor tu Epic ID, tu nombre, tu número de cofres y los Epic ID de tus compañeros. Recibes la cifra exacta de un compañero solo si os habéis declarado mutuamente en esa partida. Desactivado por defecto.",
+            "После каждого матча счётчик отправляет на сервер твой Epic ID, ник, число сундуков и Epic ID напарников. Точное число напарника ты получаешь, только если вы оба указали друг друга в этом матче. По умолчанию выключено."),
+        ["onlineSwitch"] = L.T("Échanger en ligne avec les coéquipiers", "Exchange online with teammates", "Intercambiar en línea con compañeros", "Обмениваться онлайн с напарниками"),
+        ["onlineRewards"] = L.T("Partager aussi mes trésors obtenus", "Also share the treasures I obtain", "Compartir también los tesoros que obtengo", "Делиться и полученными наградами"),
+        ["onlineRewardsHelp"] = L.T("Tes amis voient les trésors que tu obtiens dans les parties jouées ensemble (le nombre de coffres est toujours partagé). Désactivé par défaut.",
+            "Your friends see the treasures you obtain in the matches you play together (the chest count is always shared). Off by default.",
+            "Tus amigos ven los tesoros que obtienes en las partidas jugadas juntos (el número de cofres siempre se comparte). Desactivado por defecto.",
+            "Твои друзья видят награды, которые ты получил в общих матчах (число сундуков делится всегда). По умолчанию выключено."),
+        ["friendsFinds"] = L.T("{0} trésors de tes amis", "{0} treasures from your friends", "{0} tesoros de tus amigos", "наград от друзей: {0}"),
+        ["onlineServer"] = L.T("Adresse du serveur (https://…)", "Server address (https://…)", "Dirección del servidor (https://…)", "Адрес сервера (https://…)"),
+        ["onlineNoServer"] = L.T("Aucun serveur configuré : saisis son adresse.", "No server configured: type its address.", "No hay servidor configurado: escribe su dirección.", "Сервер не задан: введи его адрес."),
+        ["onlineLastOk"] = L.T("Dernier échange : {0} · parties envoyées : {1}", "Last exchange: {0} · matches sent: {1}", "Último intercambio: {0} · partidas enviadas: {1}", "Последний обмен: {0} · отправлено матчей: {1}"),
+        ["onlineError"] = L.T("Erreur : {0}", "Error: {0}", "Error: {0}", "Ошибка: {0}"),
+        ["shareExact"] = L.T("dont exacts : {0} sur {1}", "exact: {0} of {1}", "exactos: {0} de {1}", "из них точных: {0} из {1}"),
         ["obs"] = L.T("Overlay pour OBS (stream)", "Overlay for OBS (stream)", "Overlay para OBS (directo)", "Оверлей для OBS (стрим)"),
         ["obsSteps"] = L.T("Dans OBS : Sources → + → Navigateur, coche « Fichier local », choisis ce fichier. Largeur 360, hauteur 220 (450 × 300 en classique). Pour ne l'avoir que sur le stream, désactive l'overlay en jeu : la page continue d'être mise à jour.",
             "In OBS: Sources → + → Browser, tick \"Local file\", pick this file. Width 360, height 220 (450 × 300 for classic). To have it on the stream only, turn the in-game overlay off: the page keeps being updated.",
@@ -345,14 +365,32 @@ public static class GuiPage
           h+=`<section class="tiles"><div class="tile hero"><button type="button" class="editbtn" onclick="openManual()" title="${esc(T.editChests)}" aria-label="${esc(T.editChests)}">__PENCIL__</button><div class="l">${esc(T.total)}</div><div class="v num">${esc(S.total)}</div><div class="l">${esc(T.totalSub)}${S.manual?'<br>'+esc(fmt(T.byHand,S.manualText.replace('+',''))):''}</div></div>
             <div class="tile"><div class="v num">${esc(S.session)}</div><div class="l">${esc(T.session)} · ${esc(S.sessionMatches)} ${esc(T.matches)}</div></div>
             <div class="tile"><div class="v num">${esc(S.last?S.last.chests:'—')}</div><div class="l">${esc(T.last)}${S.last?'<br>'+esc(S.last.when)+' · '+esc(S.last.mode):''}</div></div>
-            ${S.squad?`<div class="tile"><div class="v num">${esc(S.squad.total)}</div><div class="l">${esc(T.squad)}<span class="badge" title="${esc(T.inaccurateWhy)}">${esc(T.inaccurate)}</span><br>${esc(fmt(T.squadSub,S.squad.team))}</div></div>`:''}
+            ${S.friends?`<div class="tile"><div class="v num">${esc(S.friends.total)}</div><div class="l">${esc(T.friends)}<br>${esc(fmt(T.friendsSub,S.friends.chests))}${S.friends.finds>0?'<br>'+esc(fmt(T.friendsFinds,S.friends.finds)):''}</div></div>`:''}
+            ${S.squad?`<div class="tile"><div class="v num">${esc(S.squad.total)}</div><div class="l">${esc(T.squad)}<span class="badge" title="${esc(T.inaccurateWhy)}">${esc(T.inaccurate)}</span><br>${esc(fmt(T.squadSub,S.squad.team))}${S.squad.exact>0?'<br>'+esc(fmt(T.shareExact,S.squad.exact,S.squad.of)):''}</div></div>`:''}
             <div class="tile"><div class="v num">★ ${esc(S.treasures)}</div><div class="l">${esc(T.treasures)} · ${esc(S.matches)} ${esc(T.matches)} · ${esc(fmt(T.perMatch,S.average))}</div></div></section>`;
+          h+=shareCard(T);
           h+=`<div class="actions"><button class="b main" onclick="setTab('report')">${esc(T.openReport)}</button>`;
           if(S.overlay.running)h+=`<button class="b" onclick="api('toggleOverlayVisible')">${esc(S.overlay.visible?T.hideOverlay:T.showOverlay)}</button><button class="b" onclick="api('toggleOverlayLock')">${esc(S.overlay.locked?T.unlock:T.lock)}</button>`;
           if(!S.update&&S.updatesOn)h+=`<button class="b" onclick="api('checkUpdate')">${esc(T.checkUpdate)}</button>`;
           h+='</div>';
           return h;
         }
+        // Exchange of squad cards: copy my code, paste a teammate's. The message stays until the next action.
+        let shareMsg=null;
+        // Online exchange (online build only): the switch, the server, how many teammates have an exact count.
+        function shareCard(T){
+          const o=S.online,q=S.squadShare;if(!o)return '';
+          return `<section><h2 class="pirate">${esc(T.onlineTitle)}</h2><div class="card">
+            <div class="row"><div><div class="t">${esc(T.onlineSwitch)}</div><div class="h">${esc(T.onlineHelp)}</div></div><div>${sw('onl',o.enabled,'onlineEnabled')}</div></div>
+            ${o.enabled?`<div class="row"><div><div class="t">${esc(T.onlineRewards)}</div><div class="h">${esc(T.onlineRewardsHelp)}</div></div><div>${sw('onr',o.shareRewards,'onlineShareRewards')}</div></div>`:''}
+            ${o.builtIn&&!o.customServer?'':`<div class="actions" style="margin-top:6px"><input type="text" id="onsrv" value="${esc(o.customServer)}" placeholder="${esc(T.onlineServer)}" aria-label="${esc(T.onlineServer)}"><button class="b" onclick="saveServer()">${esc(T.save)}</button></div>`}
+            ${o.enabled&&!o.serverSet?`<div class="estimate" style="color:var(--warn)">${esc(T.onlineNoServer)}</div>`:''}
+            ${o.enabled&&o.serverSet&&q&&q.hasTeammates?`<div class="mtotal" style="margin-top:10px">${esc(fmt(T.shareCoverage,q.exact,q.of))}</div>`:''}
+            ${o.enabled&&o.serverSet&&o.lastOk?`<div class="note">${esc(fmt(T.onlineLastOk,o.lastOk,o.sent))}</div>`:''}
+            ${o.error?`<div class="estimate" style="color:var(--warn)">${esc(fmt(T.onlineError,o.error))}</div>`:''}
+            ${shareMsg&&shareMsg.error?`<div class="estimate" style="color:var(--warn)">${esc(shareMsg.error)}</div>`:''}</div></section>`;
+        }
+        async function saveServer(){const r=await api('onlineServer',$('#onsrv').value);shareMsg=r&&r.error?{error:r.error}:null;render(true)}
         function overlay(T){
           const o=S.overlay;
           let h=`<div class="card">${row(esc(T.inGame),esc(T.inGameHelp),sw('ov',o.show,'showOverlay'))}

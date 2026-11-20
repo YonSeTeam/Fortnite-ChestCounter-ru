@@ -10,6 +10,10 @@
     <PublishDocumentationFiles>false</PublishDocumentationFiles>
     <PublishReferencesDocumentationFiles>false</PublishReferencesDocumentationFiles>
     <AssemblyName>ChestCounter</AssemblyName>
+    <!-- Two builds from the same code: the normal one (no network code at all besides updates and pictures) and the online one
+         (-p:Online=true): squad counts exchanged through a server, file ChestCounter-Online.exe, updated from its own release asset. -->
+    <AssemblyName Condition="'$(Online)'=='true'">ChestCounter-Online</AssemblyName>
+    <DefineConstants Condition="'$(Online)'=='true'">$(DefineConstants);ONLINE</DefineConstants>
     <RootNamespace>ChestCounter</RootNamespace>
     <Version>1.5.1</Version>
     <InvariantGlobalization>false</InvariantGlobalization>
@@ -22,6 +26,13 @@
     <!-- The chest of the report, as the icon of the exe, its console window and the tray. -->
     <ApplicationIcon>Assets\ChestCounter.ico</ApplicationIcon>
   </PropertyGroup>
+  <ItemGroup Condition="'$(Online)'=='true' And '$(ServerUrl)'!=''">
+    <!-- Address of the squad server, given at publish time (-p:ServerUrl=https://...): not kept in the repository. -->
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>ServerUrl</_Parameter1>
+      <_Parameter2>$(ServerUrl)</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\lib\FortniteReplayReader\FortniteReplayReader.csproj" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4314.35" />

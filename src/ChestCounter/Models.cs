@@ -220,6 +220,18 @@ public sealed class Config
 
     /// <summary>Show the treasures found by teammates in the report (estimate). Off by default.</summary>
     public bool ShowTeamTreasuresInReport { get; set; }
+
+    /// <summary>Online build only: exchange chest counts with teammates through the squad server. Off until the player turns it on.</summary>
+    public bool OnlineEnabled { get; set; }
+
+    /// <summary>Online build only: server address typed by the player (empty = the address built into this exe, if any).</summary>
+    public string? OnlineServer { get; set; }
+
+    /// <summary>Random secret of this installation: proves to the server that an Epic id is still used from the same installation. Never shown.</summary>
+    public string? OnlineKey { get; set; }
+
+    /// <summary>Online build only: also share the treasures obtained in each match with the teammates (the chest count is always shared). Off by default.</summary>
+    public bool ShareRewards { get; set; }
 }
 
 public sealed class TrackerData
@@ -247,6 +259,9 @@ public sealed class TrackerData
     /// <summary>Treasures ticked as obtained in the collection, per profile key (saved by the graphical window).</summary>
     public Dictionary<string, List<string>> Obtained { get; set; } = new();
 
+    /// <summary>Matches already sent to the squad server (online build only; ids of the matches).</summary>
+    public List<string> OnlineSent { get; set; } = new();
+
     /// <summary>Treasures ticked for the profile shown (filled by <see cref="Profiles.View"/>, not saved).</summary>
     [JsonIgnore] public List<string> ObtainedIds { get; set; } = new();
 
@@ -262,8 +277,17 @@ public sealed class TrackerData
     /// <summary>The player's total: counted chests + the manual adjustment (never below zero).</summary>
     [JsonIgnore] public int TotalChests => Math.Max(0, CountedChests + ManualAdjust);
 
-    /// <summary>Chests of all teammates, in all matches.</summary>
-    [JsonIgnore] public int TeamChests => Matches.Sum(m => m.TeamChestsOpened);
+    /// <summary>
+    /// Exact chest counts handed over by teammates (see <see cref="SquadCard"/>), one per (match, player). They replace
+    /// the replay's estimate for that teammate in that match. Kept apart: the player's own matches never change.
+    /// </summary>
+    public List<SquadCard> SquadCards { get; set; } = new();
+
+    /// <summary>Chests of all teammates, in all matches (exact where a card was imported, estimated elsewhere).</summary>
+    [JsonIgnore] public int TeamChests => Matches.Sum(m => Squad.TeamChestsOf(m, SquadCards));
+
+    /// <summary>Chests of the teammates in one match, with the imported cards applied.</summary>
+    public int TeamChestsOf(MatchRecord m) => Squad.TeamChestsOf(m, SquadCards);
 
     /// <summary>The squad total: the player's total + the chests of every teammate.</summary>
     [JsonIgnore] public int SquadChests => TotalChests + TeamChests;

@@ -7,3 +7,6 @@ dist-*/
 *.replay
 # debug dumps of the parser (ParseMode.Debug)
 cmds/
+
+# squad server data
+server/data.json*
