@@ -48,7 +48,12 @@ public static class OverlayModel
         var last = d.Matches.OrderByDescending(m => m.MatchStartUtc ?? m.AnalyzedAtUtc).FirstOrDefault();
         if (last != null)
         {
-            rows.Add(new OverlayRow(L.T("Dernière", "Last", "Última", "Последний"), L.Count(last.ChestsOpened, "coffre", "chest", "cofre", "сундук|сундука|сундуков")));
+            // Friends who handed their exact count of that match over (online exchange): "+ 5 from friends" in small grey.
+            var friendCards = last.TeamChests.Select(t => Squad.CardFor(d.SquadCards, last, t)).Where(c => c != null).ToList();
+            var friendsDetail = friendCards.Count > 0
+                ? L.T($"+ {friendCards.Sum(c => c!.Chests)} d'amis", $"+ {friendCards.Sum(c => c!.Chests)} from friends", $"+ {friendCards.Sum(c => c!.Chests)} de amigos", $"+ {friendCards.Sum(c => c!.Chests)} от друзей")
+                : null;
+            rows.Add(new OverlayRow(L.T("Dernière", "Last", "Última", "Последний"), L.Count(last.ChestsOpened, "coffre", "chest", "cofre", "сундук|сундука|сундуков"), Detail: friendsDetail));
         }
 
         var treasures = d.Matches.Sum(m => m.TreasureFinds.Count) + liveTreasures;
