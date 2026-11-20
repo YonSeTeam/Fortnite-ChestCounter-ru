@@ -45,6 +45,7 @@ public static class OverlayModel
         }
         rows.Add(new OverlayRow(L.T("Session", "Session", "Sesión", "Сессия"), L.Count(session.Sum(m => m.ChestsOpened) + liveChests, "coffre", "chest", "cofre", "сундук|сундука|сундуков"), Detail: sessionDetail));
 
+        string? friendsValue = null;
         var last = d.Matches.OrderByDescending(m => m.MatchStartUtc ?? m.AnalyzedAtUtc).FirstOrDefault();
         if (last != null)
         {
@@ -53,6 +54,7 @@ public static class OverlayModel
             var friendsDetail = friendCards.Count > 0
                 ? L.T($"amis · {friendCards.Sum(c => c!.Chests)}", $"friends · {friendCards.Sum(c => c!.Chests)}", $"amigos · {friendCards.Sum(c => c!.Chests)}", $"друзья · {friendCards.Sum(c => c!.Chests)}")
                 : null;
+            friendsValue = friendCards.Count > 0 ? L.N(friendCards.Sum(c => c!.Chests)) : null;
             rows.Add(new OverlayRow(L.T("Dernière", "Last", "Última", "Последний"), L.Count(last.ChestsOpened, "coffre", "chest", "cofre", "сундук|сундука|сундуков"), Detail: friendsDetail));
         }
 
@@ -66,14 +68,17 @@ public static class OverlayModel
         // Right counter: the match in progress when readable, "…" while it cannot be read yet, else the last match.
         if (live != null)
         {
-            return new OverlayView(L.N(total), L.N(live.ChestsOpened), L.T("partie en cours", "current match", "partida actual", "текущий матч"), true, L.T("● EN DIRECT", "● LIVE", "● EN DIRECTO", "● LIVE"), rows, L.N(treasures), L.N(session.Sum(m => m.ChestsOpened) + liveChests), last != null ? L.N(last.ChestsOpened) : null, squad);
+            return new OverlayView(L.N(total), L.N(live.ChestsOpened), L.T("partie en cours", "current match", "partida actual", "текущий матч"), true, L.T("● EN DIRECT", "● LIVE", "● EN DIRECTO", "● LIVE"), rows, L.N(treasures), L.N(session.Sum(m => m.ChestsOpened) + liveChests), last != null ? L.N(last.ChestsOpened) : null, squad, friendsValue);
         }
         if (inProgress)
         {
-            return new OverlayView(L.N(total), "…", L.T("en cours", "in progress", "en curso", "идёт"), true, L.T("● PARTIE EN COURS", "● MATCH IN PROGRESS", "● PARTIDA EN CURSO", "● ИДЁТ МАТЧ"), rows, L.N(treasures), L.N(session.Sum(m => m.ChestsOpened) + liveChests), last != null ? L.N(last.ChestsOpened) : null, squad);
+            return new OverlayView(L.N(total), "…", L.T("en cours", "in progress", "en curso", "идёт"), true, L.T("● PARTIE EN COURS", "● MATCH IN PROGRESS", "● PARTIDA EN CURSO", "● ИДЁТ МАТЧ"), rows, L.N(treasures), L.N(session.Sum(m => m.ChestsOpened) + liveChests), last != null ? L.N(last.ChestsOpened) : null, squad, friendsValue);
         }
-        return new OverlayView(L.N(total), last != null ? L.N(last.ChestsOpened) : null, LastMatchCaption, false, null, rows, L.N(treasures), L.N(session.Sum(m => m.ChestsOpened) + liveChests), last != null ? L.N(last.ChestsOpened) : null, squad);
+        return new OverlayView(L.N(total), last != null ? L.N(last.ChestsOpened) : null, LastMatchCaption, false, null, rows, L.N(treasures), L.N(session.Sum(m => m.ChestsOpened) + liveChests), last != null ? L.N(last.ChestsOpened) : null, squad, friendsValue);
     }
+
+    /// <summary>Label of the friends' chests of the last match (online exchange).</summary>
+    public static string FriendsLabel => L.T("Amis", "Friends", "Amigos", "Друзья");
 
     /// <summary>Label of the squad total (the player + every teammate, duo, trio or squad).</summary>
     public static string SquadLabel => L.T("Équipe", "Squad", "Equipo", "Отряд");

@@ -15,7 +15,7 @@ public sealed record OverlayRow(string Label, string Value, bool Treasure = fals
 /// <param name="Current">Right counter (match in progress, or last match); null = "—".</param>
 /// <param name="CurrentLive">Right counter is the match in progress (green).</param>
 /// <param name="Badge">Header badge ("● EN DIRECT" / "● LIVE", "● PARTIE EN COURS" / "● MATCH IN PROGRESS") or null.</param>
-public sealed record OverlayView(string Total, string? Current, string CurrentCaption, bool CurrentLive, string? Badge, IReadOnlyList<OverlayRow> Rows, string Treasures = "0", string Session = "0", string? Last = null, string? Squad = null);
+public sealed record OverlayView(string Total, string? Current, string CurrentCaption, bool CurrentLive, string? Badge, IReadOnlyList<OverlayRow> Rows, string Treasures = "0", string Session = "0", string? Last = null, string? Squad = null, string? Friends = null);
 
 [SupportedOSPlatform("windows")]
 public static class NativeOverlay
@@ -633,11 +633,12 @@ public static class NativeOverlay
                 TextWidth(hdc, _fontHudSmall, state.Label + Sep + state.Value, out _hudSmallH),
                 TextWidth(hdc, _fontHudSmall, sessionLabel + Sep + v.Session, out _),
                 v.Squad != null ? TextWidth(hdc, _fontHudSmall, OverlayModel.SquadLabel + Sep + v.Squad, out _) : 0,
+                v.Friends != null ? TextWidth(hdc, _fontHudSmall, OverlayModel.FriendsLabel + Sep + v.Friends, out _) : 0,
                 Sc(22) + TextWidth(hdc, _fontHudSmall, v.Treasures, out _),
             }.Max();
             // Room for the in-match dot is always kept: the overlay does not widen when a match starts.
             w = lockW + pad + Math.Max(Sc(18) + Sc(26) + Sc(8) + bigW, rowsW) + pad + Sc(14);
-            h = pad + _hudBigH + (v.Squad != null ? 4 : 3) * (_hudSmallH + Sc(2)) + pad;
+            h = pad + _hudBigH + (3 + (v.Squad != null ? 1 : 0) + (v.Friends != null ? 1 : 0)) * (_hudSmallH + Sc(2)) + pad;
             w = Math.Max(_stableW, w);
             _stableW = w;
             _lockRect = new RECT { Left = Sc(2), Top = 0, Right = lockW, Bottom = h };
@@ -818,6 +819,12 @@ public static class NativeOverlay
         var rowH = _hudSmallH;
         LabelValue(hdc, state.Label, state.Value, left, right, y, rowH, white);
         y += rowH + Sc(2);
+        if (v.Friends != null)
+        {
+            // What the friends did in that last match (online exchange), on its own line.
+            LabelValue(hdc, OverlayModel.FriendsLabel, v.Friends, left, right, y, rowH, white);
+            y += rowH + Sc(2);
+        }
         LabelValue(hdc, L.T("Session", "Session", "Sesión", "Сессия"), v.Session, left, right, y, rowH, white);
         y += rowH + Sc(2);
         if (v.Squad != null)
