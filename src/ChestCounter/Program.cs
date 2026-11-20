@@ -976,14 +976,12 @@ object BuildGuiState()
             lastOk = onlineStatus.LastOkUtc is { } ok ? L.DateTimeShort(L.Shown(ok)) : null,
             sent = onlineStatus.Sent,
         },
-        // Exchange of squad cards (exact counts of teammates): can the player send one, how many teammates are exact.
+        // How many teammates have an exact count (handed over by the online exchange).
         squadShare = new
         {
-            canExport = view.Matches.Any(m => Squad.Build(m) != null),
             hasTeammates = squadCoverage.Total > 0,
             exact = L.N(squadCoverage.Exact),
             of = L.N(squadCoverage.Total),
-            imported = view.SquadCards.Count,
         },
         treasures = L.N(matches.Sum(m => m.TreasureFinds.Count)),
         matches = L.N(matches.Count),
@@ -1225,41 +1223,6 @@ object? RunGuiAction(string name, System.Text.Json.JsonElement value)
                 }
             }
             break;
-        case "squadExport":
-        {
-            // The card(s) of the player's latest matches (1 or 10): copied as one text to send to the squad.
-            var count = Math.Clamp(Int(), 1, 10);
-            var cards = Profiles.View(data, config).Matches
-                .OrderByDescending(m => m.MatchStartUtc ?? m.AnalyzedAtUtc)
-                .Select(Squad.Build).Where(c => c != null).Select(c => c!).Take(count).ToList();
-            settingsChanged = false;
-            if (cards.Count == 0)
-            {
-                result = new { error = L.T("Aucune partie à partager pour l'instant.", "No match to share yet.", "Aún no hay partidas para compartir.", "Пока нет матчей, которыми можно поделиться.") };
-            }
-            else
-            {
-                var ok = CopyToClipboard(Squad.Encode(cards));
-                result = ok
-                    ? new { text = L.T($"Code copié ({cards.Count} partie(s)). Envoie-le à ton équipe.", $"Code copied ({cards.Count} match(es)). Send it to your squad.", $"Código copiado ({cards.Count} partida(s)). Envíaselo a tu equipo.", $"Код скопирован (матчей: {cards.Count}). Отправь его своему отряду.") }
-                    : (object)new { error = L.T("Copie impossible.", "Could not copy.", "No se pudo copiar.", "Не удалось скопировать.") };
-            }
-            break;
-        }
-        case "squadImport":
-        {
-            var r = Squad.Import(data, Str());
-            if (r.Added + r.Updated > 0)
-            {
-                store.SaveData(data);
-            }
-            else
-            {
-                settingsChanged = false;
-            }
-            result = new { text = SquadImportMessage(r), ok = r.Accepted > 0 };
-            break;
-        }
         case "copyObsPath": CopyToClipboard(Path.GetFullPath(store.OverlayPath)); settingsChanged = false; break;
         case "openDataFolder": Open(store.Folder); settingsChanged = false; break;
         case "openErrorLog": if (File.Exists(store.ErrorLogPath)) Open(store.ErrorLogPath); settingsChanged = false; break;
@@ -1276,36 +1239,6 @@ object? RunGuiAction(string name, System.Text.Json.JsonElement value)
         UpdateOverlay(store, config, data, tracker.LiveMatch, tracker.IsLive);
     }
     return result;
-}
-
-static string SquadImportMessage(SquadImportResult r)
-{
-    if (r.Accepted + r.Rejected == 0)
-    {
-        return L.T("Aucun code d'équipe trouvé dans ce texte.", "No squad code found in this text.", "No se encontró ningún código de equipo en este texto.", "В тексте не найден код отряда.");
-    }
-    var parts = new List<string>();
-    if (r.Accepted > 0)
-    {
-        parts.Add(L.T($"ajouté : {r.Added}, mis à jour : {r.Updated}, déjà connu : {r.Unchanged}", $"added: {r.Added}, updated: {r.Updated}, already known: {r.Unchanged}", $"añadidas: {r.Added}, actualizadas: {r.Updated}, ya conocidas: {r.Unchanged}", $"добавлено: {r.Added}, обновлено: {r.Updated}, уже было: {r.Unchanged}"));
-    }
-    if (r.NoMatch > 0)
-    {
-        parts.Add(L.T($"partie absente de ton historique : {r.NoMatch}", $"match not in your history: {r.NoMatch}", $"partida que no está en tu historial: {r.NoMatch}", $"матча нет в твоей истории: {r.NoMatch}"));
-    }
-    if (r.NotSquad > 0)
-    {
-        parts.Add(L.T($"pas dans ton équipe dans cette partie : {r.NotSquad}", $"not in your squad in that match: {r.NotSquad}", $"no estaba en tu equipo en esa partida: {r.NotSquad}", $"не был в твоём отряде в том матче: {r.NotSquad}"));
-    }
-    if (r.Own > 0)
-    {
-        parts.Add(L.T($"ton propre code ignoré : {r.Own}", $"your own code ignored: {r.Own}", $"tu propio código ignorado: {r.Own}", $"твой собственный код пропущен: {r.Own}"));
-    }
-    if (r.Invalid + r.BadCodes > 0)
-    {
-        parts.Add(L.T($"codes invalides : {r.Invalid + r.BadCodes}", $"invalid codes: {r.Invalid + r.BadCodes}", $"códigos no válidos: {r.Invalid + r.BadCodes}", $"неверных кодов: {r.Invalid + r.BadCodes}"));
-    }
-    return string.Join(" · ", parts);
 }
 
 static bool AcquireInstance(Mutex m, TimeSpan wait)

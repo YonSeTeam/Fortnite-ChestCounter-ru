@@ -71,15 +71,6 @@ public static class GuiPage
             "Your chests + those of all your teammates (random ones too), on the overlay and the home tab.",
             "Tus cofres + los de todos tus compañeros (también los aleatorios), en el overlay y el inicio.",
             "Твои сундуки + сундуки всех твоих напарников (в том числе случайных) — на оверлее и на главной вкладке."),
-        ["shareTitle"] = L.T("Échanger avec l'équipe", "Share with your squad", "Compartir con el equipo", "Обмен с отрядом"),
-        ["shareHelp"] = L.T("Ton compteur ne voit pas les coffres d'un coéquipier à plus de 150 m. Son propre compteur, lui, connaît le chiffre exact : il te le transmet par un code à copier-coller (rien n'est envoyé sur Internet, et les trésors n'en font pas partie). Le chiffre exact remplace l'estimation pour ce coéquipier dans cette partie.",
-            "Your counter cannot see the chests of a teammate more than 150 m away. Their own counter knows the exact figure: they pass it on as a code to copy and paste (nothing goes over the Internet, and treasures are not part of it). The exact figure replaces the estimate for that teammate in that match.",
-            "Tu contador no ve los cofres de un compañero a más de 150 m. El contador de él sí conoce la cifra exacta: te la pasa como un código para copiar y pegar (no se envía nada por Internet y los tesoros no forman parte). La cifra exacta sustituye la estimación de ese compañero en esa partida.",
-            "Твой счётчик не видит сундуки напарника, который дальше чем в 150 м. Зато его собственный счётчик знает точное число и передаёт его кодом, который копируется и вставляется (по интернету ничего не отправляется, награды в код не входят). Точное число заменяет оценку для этого напарника в этом матче."),
-        ["shareSendLast"] = L.T("Copier mon code (dernière partie)", "Copy my code (last match)", "Copiar mi código (última partida)", "Скопировать мой код (последний матч)"),
-        ["shareSendTen"] = L.T("Mes 10 dernières parties", "My last 10 matches", "Mis últimas 10 partidas", "Мои последние 10 матчей"),
-        ["sharePaste"] = L.T("Code d'un coéquipier", "A teammate's code", "Código de un compañero", "Код напарника"),
-        ["shareAdd"] = L.T("Ajouter", "Add", "Añadir", "Добавить"),
         ["shareCoverage"] = L.T("Chiffres exacts : {0} sur {1} coéquipiers (le reste est estimé)", "Exact figures: {0} of {1} teammates (the rest is estimated)", "Cifras exactas: {0} de {1} compañeros (el resto es estimado)", "Точные данные: {0} из {1} напарников (остальные оценены)"),
         ["friends"] = L.T("Toi + amis", "You + friends", "Tú + amigos", "Ты + друзья"),
         ["friendsSub"] = L.T("tes coffres + {0} de tes amis (chiffres exacts)", "your chests + {0} from friends (exact figures)", "tus cofres + {0} de tus amigos (cifras exactas)", "твои сундуки + {0} от друзей (точные данные)"),
@@ -380,24 +371,19 @@ public static class GuiPage
         }
         // Exchange of squad cards: copy my code, paste a teammate's. The message stays until the next action.
         let shareMsg=null;
+        // Online exchange (online build only): the switch, the server, how many teammates have an exact count.
         function shareCard(T){
-          const q=S.squadShare;if(!q||(!q.canExport&&!q.hasTeammates&&!S.online))return '';
-          const o=S.online;
-          return `<section><h2 class="pirate">${esc(T.shareTitle)}</h2><div class="card"><p class="note" style="color:var(--cmuted);margin-top:0">${esc(T.shareHelp)}</p>
-            ${q.hasTeammates?`<div class="mtotal">${esc(fmt(T.shareCoverage,q.exact,q.of))}</div>`:''}
-            <div class="actions"><button class="b main" ${q.canExport?'':'disabled'} onclick="squadSend(1)">${esc(T.shareSendLast)}</button><button class="b" ${q.canExport?'':'disabled'} onclick="squadSend(10)">${esc(T.shareSendTen)}</button></div>
-            <div class="t" style="margin-top:14px;font-weight:600">${esc(T.sharePaste)}</div>
-            <div class="actions" style="margin-top:6px"><input type="text" id="sqcode" placeholder="CCSQ1:…" aria-label="${esc(T.sharePaste)}" onkeydown="if(event.key==='Enter')squadAdd()"><button class="b" onclick="squadAdd()">${esc(T.shareAdd)}</button></div>
-            ${o?`<div class="row" style="margin-top:14px"><div><div class="t">${esc(T.onlineSwitch)}</div><div class="h">${esc(T.onlineHelp)}</div></div><div>${sw('onl',o.enabled,'onlineEnabled')}</div></div>
-              ${o.builtIn&&!o.customServer?'':`<div class="actions" style="margin-top:6px"><input type="text" id="onsrv" value="${esc(o.customServer)}" placeholder="${esc(T.onlineServer)}" aria-label="${esc(T.onlineServer)}"><button class="b" onclick="saveServer()">${esc(T.save)}</button></div>`}
-              ${o.enabled&&!o.serverSet?`<div class="estimate" style="color:var(--warn)">${esc(T.onlineNoServer)}</div>`:''}
-              ${o.enabled&&o.serverSet&&o.lastOk?`<div class="note">${esc(fmt(T.onlineLastOk,o.lastOk,o.sent))}</div>`:''}
-              ${o.error?`<div class="estimate" style="color:var(--warn)">${esc(fmt(T.onlineError,o.error))}</div>`:''}`:''}
-            ${shareMsg?`<div class="estimate" style="${shareMsg.error?'color:var(--warn)':''}">${esc(shareMsg.text||shareMsg.error)}</div>`:''}</div></section>`;
+          const o=S.online,q=S.squadShare;if(!o)return '';
+          return `<section><h2 class="pirate">${esc(T.onlineTitle)}</h2><div class="card">
+            <div class="row"><div><div class="t">${esc(T.onlineSwitch)}</div><div class="h">${esc(T.onlineHelp)}</div></div><div>${sw('onl',o.enabled,'onlineEnabled')}</div></div>
+            ${o.builtIn&&!o.customServer?'':`<div class="actions" style="margin-top:6px"><input type="text" id="onsrv" value="${esc(o.customServer)}" placeholder="${esc(T.onlineServer)}" aria-label="${esc(T.onlineServer)}"><button class="b" onclick="saveServer()">${esc(T.save)}</button></div>`}
+            ${o.enabled&&!o.serverSet?`<div class="estimate" style="color:var(--warn)">${esc(T.onlineNoServer)}</div>`:''}
+            ${o.enabled&&o.serverSet&&q&&q.hasTeammates?`<div class="mtotal" style="margin-top:10px">${esc(fmt(T.shareCoverage,q.exact,q.of))}</div>`:''}
+            ${o.enabled&&o.serverSet&&o.lastOk?`<div class="note">${esc(fmt(T.onlineLastOk,o.lastOk,o.sent))}</div>`:''}
+            ${o.error?`<div class="estimate" style="color:var(--warn)">${esc(fmt(T.onlineError,o.error))}</div>`:''}
+            ${shareMsg&&shareMsg.error?`<div class="estimate" style="color:var(--warn)">${esc(shareMsg.error)}</div>`:''}</div></section>`;
         }
         async function saveServer(){const r=await api('onlineServer',$('#onsrv').value);shareMsg=r&&r.error?{error:r.error}:null;render(true)}
-        async function squadSend(n){const r=await api('squadExport',n);shareMsg=r||null;render(true)}
-        async function squadAdd(){const i=$('#sqcode');const r=await api('squadImport',i?i.value:'');shareMsg=r&&r.error?{error:r.error}:r;render(true)}
         function overlay(T){
           const o=S.overlay;
           let h=`<div class="card">${row(esc(T.inGame),esc(T.inGameHelp),sw('ov',o.show,'showOverlay'))}

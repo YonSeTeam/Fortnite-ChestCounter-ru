@@ -8,8 +8,8 @@ namespace ChestCounter;
 /// <summary>
 /// The exact chest count of one player in one match, as read in THAT player's own replay. A replay only holds what
 /// happened within about 150 m of the recording player, so the count of a teammate seen from another replay is an
-/// estimate; the teammate's own number is exact. Cards are handed over by hand (a short code to copy and paste):
-/// no network, no account. Rewards (treasures) are never part of a card.
+/// estimate; the teammate's own number is exact. Cards come from the online exchange (see OnlineSync).
+/// Rewards (treasures) are never part of a card.
 /// </summary>
 public sealed class SquadCard
 {
@@ -43,13 +43,7 @@ public sealed record SquadImportResult(int Added, int Updated, int Unchanged, in
 
 public static class Squad
 {
-    /// <summary>Start of every code; the digit is the format version.</summary>
-    public const string Prefix = "CCSQ1:";
-
-    private const int MaxCodes = 200;
-    private const int MaxCodeLength = 60_000;
     private const int MaxChestsPerMatch = 300;
-    private static readonly Regex CodeRegex = new(@"CCSQ1:[A-Za-z0-9_\-]+", RegexOptions.Compiled);
     private static readonly Regex IdRegex = new(@"^[A-Za-z0-9\-]{8,64}$", RegexOptions.Compiled);
 
     /// <summary>Key of a card: one per (match, player). A second import of the same pair replaces the first.</summary>
@@ -75,61 +69,16 @@ public static class Squad
         };
     }
 
-    /// <summary>One text holding the cards: copy it, send it, paste it on the teammate's counter.</summary>
-    public static string Encode(IEnumerable<SquadCard> cards)
-    {
-        var plain = cards.Select(c => new SquadCard { Match = c.Match, Epic = c.Epic, Name = c.Name, Chests = c.Chests, Destroyed = c.Destroyed, Start = c.Start }).ToList();
-        var json = JsonSerializer.SerializeToUtf8Bytes(plain, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull });
-        return Prefix + Convert.ToBase64String(json).TrimEnd('=').Replace('+', '-').Replace('/', '_');
-    }
-
-    /// <summary>Cards of every code found in a pasted text (anything around the codes is ignored).</summary>
-    public static List<SquadCard> Decode(string? text, out int badCodes)
-    {
-        badCodes = 0;
-        var cards = new List<SquadCard>();
-        foreach (Match code in CodeRegex.Matches(text ?? "").Take(MaxCodes))
-        {
-            try
-            {
-                var b64 = code.Value[Prefix.Length..].Replace('-', '+').Replace('_', '/');
-                if (b64.Length > MaxCodeLength)
-                {
-                    throw new FormatException();
-                }
-                b64 = b64.PadRight(b64.Length + (4 - b64.Length % 4) % 4, '=');
-                var list = JsonSerializer.Deserialize<List<SquadCard>>(Convert.FromBase64String(b64));
-                if (list == null || list.Count == 0 || list.Count > 500)
-                {
-                    throw new FormatException();
-                }
-                cards.AddRange(list);
-            }
-            catch
-            {
-                badCodes++;
-            }
-        }
-        return cards;
-    }
-
     private static bool IsValid(SquadCard c) =>
         c.Match != null && c.Epic != null && IdRegex.IsMatch(c.Match) && IdRegex.IsMatch(c.Epic)
         && c.Chests is >= 0 and <= MaxChestsPerMatch && c.Destroyed >= 0 && c.Destroyed <= c.Chests;
 
     /// <summary>
-    /// Adds the cards of a pasted text to the data. A card is kept only when its match is in this history and its
-    /// sender was in the player's squad there (listed as a teammate, not a bot); a card of the player themself is
-    /// ignored. Importing the same card again replaces it, it never adds up.
+    /// Adds the cards received from the online exchange to the data. A card is kept only when its match is in this
+    /// history and its sender was in the player's squad there (listed as a teammate, not a bot); a card of the player
+    /// themself is ignored. Receiving the same card again replaces it, it never adds up.
     /// </summary>
-    public static SquadImportResult Import(TrackerData d, string? text)
-    {
-        var cards = Decode(text, out var bad);
-        return ImportCards(d, cards, bad);
-    }
-
-    /// <summary>Same checks for cards that did not come from a pasted code (the online exchange).</summary>
-    public static SquadImportResult ImportCards(TrackerData d, IEnumerable<SquadCard> cards, int bad = 0)
+    public static SquadImportResult ImportCards(TrackerData d, IEnumerable<SquadCard> cards)
     {
         int added = 0, updated = 0, unchanged = 0, noMatch = 0, notSquad = 0, own = 0, invalid = 0;
         var seen = new HashSet<string>();
@@ -180,7 +129,7 @@ public static class Squad
                 if (old == null) added++; else updated++;
             }
         }
-        return new SquadImportResult(added, updated, unchanged, noMatch, notSquad, own, invalid, bad);
+        return new SquadImportResult(added, updated, unchanged, noMatch, notSquad, own, invalid, 0);
     }
 
     /// <summary>Chests of the teammates who handed an exact count over (what "you + your friends" adds to your own total).</summary>
