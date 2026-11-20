@@ -262,8 +262,17 @@ public sealed class TrackerData
     /// <summary>The player's total: counted chests + the manual adjustment (never below zero).</summary>
     [JsonIgnore] public int TotalChests => Math.Max(0, CountedChests + ManualAdjust);
 
-    /// <summary>Chests of all teammates, in all matches.</summary>
-    [JsonIgnore] public int TeamChests => Matches.Sum(m => m.TeamChestsOpened);
+    /// <summary>
+    /// Exact chest counts handed over by teammates (see <see cref="SquadCard"/>), one per (match, player). They replace
+    /// the replay's estimate for that teammate in that match. Kept apart: the player's own matches never change.
+    /// </summary>
+    public List<SquadCard> SquadCards { get; set; } = new();
+
+    /// <summary>Chests of all teammates, in all matches (exact where a card was imported, estimated elsewhere).</summary>
+    [JsonIgnore] public int TeamChests => Matches.Sum(m => Squad.TeamChestsOf(m, SquadCards));
+
+    /// <summary>Chests of the teammates in one match, with the imported cards applied.</summary>
+    public int TeamChestsOf(MatchRecord m) => Squad.TeamChestsOf(m, SquadCards);
 
     /// <summary>The squad total: the player's total + the chests of every teammate.</summary>
     [JsonIgnore] public int SquadChests => TotalChests + TeamChests;

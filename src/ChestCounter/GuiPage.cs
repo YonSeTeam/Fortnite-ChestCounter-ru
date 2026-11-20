@@ -71,6 +71,17 @@ public static class GuiPage
             "Your chests + those of all your teammates (random ones too), on the overlay and the home tab.",
             "Tus cofres + los de todos tus compañeros (también los aleatorios), en el overlay y el inicio.",
             "Твои сундуки + сундуки всех твоих напарников (в том числе случайных) — на оверлее и на главной вкладке."),
+        ["shareTitle"] = L.T("Échanger avec l'équipe", "Share with your squad", "Compartir con el equipo", "Обмен с отрядом"),
+        ["shareHelp"] = L.T("Ton compteur ne voit pas les coffres d'un coéquipier à plus de 150 m. Son propre compteur, lui, connaît le chiffre exact : il te le transmet par un code à copier-coller (rien n'est envoyé sur Internet, et les trésors n'en font pas partie). Le chiffre exact remplace l'estimation pour ce coéquipier dans cette partie.",
+            "Your counter cannot see the chests of a teammate more than 150 m away. Their own counter knows the exact figure: they pass it on as a code to copy and paste (nothing goes over the Internet, and treasures are not part of it). The exact figure replaces the estimate for that teammate in that match.",
+            "Tu contador no ve los cofres de un compañero a más de 150 m. El contador de él sí conoce la cifra exacta: te la pasa como un código para copiar y pegar (no se envía nada por Internet y los tesoros no forman parte). La cifra exacta sustituye la estimación de ese compañero en esa partida.",
+            "Твой счётчик не видит сундуки напарника, который дальше чем в 150 м. Зато его собственный счётчик знает точное число и передаёт его кодом, который копируется и вставляется (по интернету ничего не отправляется, награды в код не входят). Точное число заменяет оценку для этого напарника в этом матче."),
+        ["shareSendLast"] = L.T("Copier mon code (dernière partie)", "Copy my code (last match)", "Copiar mi código (última partida)", "Скопировать мой код (последний матч)"),
+        ["shareSendTen"] = L.T("Mes 10 dernières parties", "My last 10 matches", "Mis últimas 10 partidas", "Мои последние 10 матчей"),
+        ["sharePaste"] = L.T("Code d'un coéquipier", "A teammate's code", "Código de un compañero", "Код напарника"),
+        ["shareAdd"] = L.T("Ajouter", "Add", "Añadir", "Добавить"),
+        ["shareCoverage"] = L.T("Chiffres exacts : {0} sur {1} coéquipiers (le reste est estimé)", "Exact figures: {0} of {1} teammates (the rest is estimated)", "Cifras exactas: {0} de {1} compañeros (el resto es estimado)", "Точные данные: {0} из {1} напарников (остальные оценены)"),
+        ["shareExact"] = L.T("dont exacts : {0} sur {1}", "exact: {0} of {1}", "exactos: {0} de {1}", "из них точных: {0} из {1}"),
         ["obs"] = L.T("Overlay pour OBS (stream)", "Overlay for OBS (stream)", "Overlay para OBS (directo)", "Оверлей для OBS (стрим)"),
         ["obsSteps"] = L.T("Dans OBS : Sources → + → Navigateur, coche « Fichier local », choisis ce fichier. Largeur 360, hauteur 220 (450 × 300 en classique). Pour ne l'avoir que sur le stream, désactive l'overlay en jeu : la page continue d'être mise à jour.",
             "In OBS: Sources → + → Browser, tick \"Local file\", pick this file. Width 360, height 220 (450 × 300 for classic). To have it on the stream only, turn the in-game overlay off: the page keeps being updated.",
@@ -345,14 +356,28 @@ public static class GuiPage
           h+=`<section class="tiles"><div class="tile hero"><button type="button" class="editbtn" onclick="openManual()" title="${esc(T.editChests)}" aria-label="${esc(T.editChests)}">__PENCIL__</button><div class="l">${esc(T.total)}</div><div class="v num">${esc(S.total)}</div><div class="l">${esc(T.totalSub)}${S.manual?'<br>'+esc(fmt(T.byHand,S.manualText.replace('+',''))):''}</div></div>
             <div class="tile"><div class="v num">${esc(S.session)}</div><div class="l">${esc(T.session)} · ${esc(S.sessionMatches)} ${esc(T.matches)}</div></div>
             <div class="tile"><div class="v num">${esc(S.last?S.last.chests:'—')}</div><div class="l">${esc(T.last)}${S.last?'<br>'+esc(S.last.when)+' · '+esc(S.last.mode):''}</div></div>
-            ${S.squad?`<div class="tile"><div class="v num">${esc(S.squad.total)}</div><div class="l">${esc(T.squad)}<span class="badge" title="${esc(T.inaccurateWhy)}">${esc(T.inaccurate)}</span><br>${esc(fmt(T.squadSub,S.squad.team))}</div></div>`:''}
+            ${S.squad?`<div class="tile"><div class="v num">${esc(S.squad.total)}</div><div class="l">${esc(T.squad)}<span class="badge" title="${esc(T.inaccurateWhy)}">${esc(T.inaccurate)}</span><br>${esc(fmt(T.squadSub,S.squad.team))}${S.squad.exact>0?'<br>'+esc(fmt(T.shareExact,S.squad.exact,S.squad.of)):''}</div></div>`:''}
             <div class="tile"><div class="v num">★ ${esc(S.treasures)}</div><div class="l">${esc(T.treasures)} · ${esc(S.matches)} ${esc(T.matches)} · ${esc(fmt(T.perMatch,S.average))}</div></div></section>`;
+          h+=shareCard(T);
           h+=`<div class="actions"><button class="b main" onclick="setTab('report')">${esc(T.openReport)}</button>`;
           if(S.overlay.running)h+=`<button class="b" onclick="api('toggleOverlayVisible')">${esc(S.overlay.visible?T.hideOverlay:T.showOverlay)}</button><button class="b" onclick="api('toggleOverlayLock')">${esc(S.overlay.locked?T.unlock:T.lock)}</button>`;
           if(!S.update&&S.updatesOn)h+=`<button class="b" onclick="api('checkUpdate')">${esc(T.checkUpdate)}</button>`;
           h+='</div>';
           return h;
         }
+        // Exchange of squad cards: copy my code, paste a teammate's. The message stays until the next action.
+        let shareMsg=null;
+        function shareCard(T){
+          const q=S.squadShare;if(!q||(!q.canExport&&!q.hasTeammates))return '';
+          return `<section><h2 class="pirate">${esc(T.shareTitle)}</h2><div class="card"><p class="note" style="color:var(--cmuted);margin-top:0">${esc(T.shareHelp)}</p>
+            ${q.hasTeammates?`<div class="mtotal">${esc(fmt(T.shareCoverage,q.exact,q.of))}</div>`:''}
+            <div class="actions"><button class="b main" ${q.canExport?'':'disabled'} onclick="squadSend(1)">${esc(T.shareSendLast)}</button><button class="b" ${q.canExport?'':'disabled'} onclick="squadSend(10)">${esc(T.shareSendTen)}</button></div>
+            <div class="t" style="margin-top:14px;font-weight:600">${esc(T.sharePaste)}</div>
+            <div class="actions" style="margin-top:6px"><input type="text" id="sqcode" placeholder="CCSQ1:…" aria-label="${esc(T.sharePaste)}" onkeydown="if(event.key==='Enter')squadAdd()"><button class="b" onclick="squadAdd()">${esc(T.shareAdd)}</button></div>
+            ${shareMsg?`<div class="estimate" style="${shareMsg.error?'color:var(--warn)':''}">${esc(shareMsg.text||shareMsg.error)}</div>`:''}</div></section>`;
+        }
+        async function squadSend(n){const r=await api('squadExport',n);shareMsg=r||null;render(true)}
+        async function squadAdd(){const i=$('#sqcode');const r=await api('squadImport',i?i.value:'');shareMsg=r&&r.error?{error:r.error}:r;render(true)}
         function overlay(T){
           const o=S.overlay;
           let h=`<div class="card">${row(esc(T.inGame),esc(T.inGameHelp),sw('ov',o.show,'showOverlay'))}
