@@ -965,10 +965,11 @@ object BuildGuiState()
         last = last == null ? null : new { chests = L.N(last.ChestsOpened), when = L.DateTimeShort(L.Shown(last.MatchStartUtc ?? last.AnalyzedAtUtc)), mode = Pretty.Playlist(last.Playlist) },
         squad = config.ShowSquadTotal && view.TeamChests > 0 ? new { total = L.N(view.SquadChests), team = L.N(view.TeamChests), exact = L.N(squadCoverage.Exact), of = L.N(squadCoverage.Total) } : null,
         // You + the teammates who handed an exact count over (a code or the online exchange).
-        friends = squadCoverage.Exact > 0 ? new { total = L.N(view.TotalChests + exactChests), chests = L.N(exactChests) } : null,
+        friends = squadCoverage.Exact > 0 ? new { total = L.N(view.TotalChests + exactChests), chests = L.N(exactChests), finds = Squad.FriendFinds(view.Matches, view.SquadCards).Count } : null,
         online = !OnlineSync.Available ? null : (object)new
         {
             enabled = config.OnlineEnabled,
+            shareRewards = config.ShareRewards,
             serverSet = OnlineSync.Server(config) != null,
             customServer = config.OnlineServer ?? "",
             builtIn = OnlineSync.DefaultServer.Length > 0,
@@ -1200,6 +1201,16 @@ object? RunGuiAction(string name, System.Text.Json.JsonElement value)
             if (OnlineSync.Available)
             {
                 config.OnlineEnabled = Bool();
+            }
+            else
+            {
+                settingsChanged = false;
+            }
+            break;
+        case "onlineShareRewards":
+            if (OnlineSync.Available)
+            {
+                config.ShareRewards = Bool();
             }
             else
             {

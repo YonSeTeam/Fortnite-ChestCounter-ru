@@ -30,9 +30,11 @@ PAIR_WINDOW_S = 10 * 60        # two reports of one match start within this
 FETCH_WINDOW_S = 48 * 3600     # matches older than this are not offered any more
 MAX_BODY = 4096
 MAX_CHESTS = 300
+MAX_FINDS = 30
 
 ID = re.compile(r"^[A-Za-z0-9-]{8,64}$")
 KEY = re.compile(r"^[A-Za-z0-9]{32,128}$")
+FIND = re.compile(r"^[A-Za-z0-9_:.\-]{1,80}$")
 
 lock = threading.Lock()
 db = {"keys": {}, "reports": {}}   # keys: epic(lower) -> sha256(install key); reports: "epic|match" -> report
@@ -115,6 +117,9 @@ def report(body, key):
         return 400, {"error": "bad start"}
     if not isinstance(mates, list) or len(mates) > 8 or not all(isinstance(m, str) and ID.match(m) for m in mates):
         return 400, {"error": "bad mates"}
+    finds = b.get("finds", [])
+    if not isinstance(finds, list) or len(finds) > MAX_FINDS or not all(isinstance(f, str) and FIND.match(f) for f in finds):
+        return 400, {"error": "bad finds"}
     with lock:
         auth = authenticate(epic, key)
         if auth:
@@ -123,7 +128,7 @@ def report(body, key):
         me = epic.lower()
         db["reports"][me + "|" + match.lower()] = {
             "epic": me, "name": name, "match": match, "start": start, "chests": chests, "destroyed": destroyed,
-            "mates": sorted({m.lower() for m in mates} - {me}), "ts": now,
+            "mates": sorted({m.lower() for m in mates} - {me}), "finds": finds, "ts": now,
         }
         purge()
         save()
@@ -152,7 +157,7 @@ def mates(epic, key):
             cand.sort(key=lambda o: (o["match"].lower() != a["match"].lower(), abs(o["start"] - a["start"])))
             o = cand[0]
             cards.append({"match": a["match"], "epic": o["epic"], "name": o["name"], "chests": o["chests"],
-                          "destroyed": o["destroyed"],
+                          "destroyed": o["destroyed"], "finds": o.get("finds", []),
                           "start": datetime.fromtimestamp(a["start"], timezone.utc).isoformat().replace("+00:00", "Z")})
     return 200, {"cards": cards}
 

@@ -263,6 +263,9 @@ public static class ReportWriter
         .col{flex:1;min-width:5px;display:flex;align-items:flex-end;position:relative;cursor:default}
         .bar{width:100%;background:var(--gold);border-radius:3px 3px 0 0;transition:filter .12s}
         .bar.top{background:#c8412f}
+        .bar.stack,.bar.stack.top{background:none;display:flex;flex-direction:column}
+        .bar.stack i{display:block;min-height:2px}.bar.stack i.fr{background:#3f9c8f;border-radius:3px 3px 0 0}.bar.stack i.mine{background:var(--gold)}.bar.stack.top i.mine{background:#c8412f}
+        .legend{margin-top:8px;font-size:12px;color:var(--muted)}.legend .lg{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 8px;vertical-align:-1px}.legend .lg.mine{background:var(--gold);margin-left:0}.legend .lg.fr{background:#3f9c8f}
         .bar.zero{background:var(--line);height:3px!important}
         .col:hover .bar{filter:brightness(1.15)}
         .tip{position:absolute;left:50%;transform:translateX(-50%);white-space:nowrap;background:var(--cink);color:var(--card);
@@ -448,22 +451,42 @@ public static class ReportWriter
         // Last 30 days, one bar per day (the best day stands out).
         var today = L.Shown(DateTime.UtcNow).Date;
         var days = Enumerable.Range(0, 30).Select(i => today.AddDays(i - 29)).ToList();
-        var perDay = days.Select(d => matches.Where(m => When(m).Date == d).Sum(m => m.ChestsOpened)).ToList();
+        var ownPerDay = days.Select(d => matches.Where(m => When(m).Date == d).Sum(m => m.ChestsOpened)).ToList();
+        // Chests of the friends who shared their exact count (online exchange), in the matches played together.
+        var friendsPerDay = days.Select(d => matches.Where(m => When(m).Date == d).Sum(m => m.TeamChests.Sum(t => Squad.CardFor(data.SquadCards, m, t)?.Chests ?? 0))).ToList();
+        var hasFriends = friendsPerDay.Any(v => v > 0);
+        var perDay = ownPerDay.Zip(friendsPerDay, (a, b) => a + b).ToList();
         var max = Math.Max(1, perDay.Max());
         sb.Append($"<section><h2 class=\"pirate\">{L.T("Coffres par jour", "Chests per day", "Cofres por día", "Сундуков по дням")}</h2><div class=\"card chart\"><div class=\"bars\">");
         for (var i = 0; i < days.Count; i++)
         {
             var v = perDay[i];
             var h = (int)Math.Round(100.0 * v / max);
-            var tip = $"{days[i].ToString(L.T("ddd dd/MM", "ddd d MMM", "ddd dd/MM", "ddd d MMM"), Fr)}{L.T(" : ", ": ", ": ", ": ")}{L.Count(v, "coffre", "chest", "cofre", "сундук|сундука|сундуков")}";
+            var tip = $"{days[i].ToString(L.T("ddd dd/MM", "ddd d MMM", "ddd dd/MM", "ddd d MMM"), Fr)}{L.T(" : ", ": ", ": ", ": ")}{L.Count(v, "coffre", "chest", "cofre", "сундук|сундука|сундуков")}"
+                + (friendsPerDay[i] > 0 ? L.T($" (toi {ownPerDay[i]} + amis {friendsPerDay[i]})", $" (you {ownPerDay[i]} + friends {friendsPerDay[i]})", $" (tú {ownPerDay[i]} + amigos {friendsPerDay[i]})", $" (ты {ownPerDay[i]} + друзья {friendsPerDay[i]})") : "");
             var cls = v == 0 ? " zero" : v == max ? " top" : "";
-            sb.Append($"<div class=\"col\" aria-label=\"{H(tip)}\"><span class=\"tip\" style=\"bottom:calc({Math.Max(h, 3)}% + 6px)\">{H(tip)}</span><div class=\"bar{cls}\" style=\"height:{h}%\"></div></div>");
+            var inner = hasFriends && v > 0 ? $"<i class=\"fr\" style=\"flex:{friendsPerDay[i]}\"></i><i class=\"mine\" style=\"flex:{ownPerDay[i]}\"></i>" : "";
+            sb.Append($"<div class=\"col\" aria-label=\"{H(tip)}\"><span class=\"tip\" style=\"bottom:calc({Math.Max(h, 3)}% + 6px)\">{H(tip)}</span><div class=\"bar{(hasFriends && v > 0 ? " stack" : "")}{cls}\" style=\"height:{h}%\">{inner}</div></div>");
         }
         var bestDay = perDay[perDay.IndexOf(perDay.Max())];
         var bestDate = days[perDay.IndexOf(perDay.Max())];
         sb.Append($"</div><div class=\"axis\"><span>{days[0].ToString(L.T("dd/MM", "d MMM", "dd/MM", "d MMM"), Fr)}</span>"
             + (bestDay > 0 ? $"<span>{L.T("meilleur jour", "best day", "mejor día", "лучший день")} : {bestDate.ToString(L.T("dd/MM", "d MMM", "dd/MM", "d MMM"), Fr)} · {L.Count(bestDay, "coffre", "chest", "cofre", "сундук|сундука|сундуков")}</span>" : "")
-            + $"<span>{L.T("aujourd'hui", "today", "hoy", "сегодня")}</span></div></div></section>");
+            + $"<span>{L.T("aujourd'hui", "today", "hoy", "сегодня")}</span></div>"
+            + (hasFriends ? $"<div class=\"legend\"><i class=\"lg mine\"></i>{L.T("toi", "you", "tú", "ты")} <i class=\"lg fr\"></i>{L.T("tes amis (parties jouées ensemble)", "your friends (matches played together)", "tus amigos (partidas jugadas juntos)", "твои друзья (общие матчи)")}</div>" : "")
+            + "</div></section>");
+
+        // Treasures that friends chose to share (online exchange), newest first.
+        var friendFinds = Squad.FriendFinds(matches, data.SquadCards);
+        if (friendFinds.Count > 0)
+        {
+            sb.Append($"<section><h2 class=\"pirate\">{L.T("Récompenses de tes amis", "Your friends' rewards", "Recompensas de tus amigos", "Награды твоих друзей")}</h2><div class=\"card\"><table><tr><th>{L.T("Date", "Date", "Fecha", "Дата")}</th><th>{L.T("Ami", "Friend", "Amigo", "Друг")}</th><th>{L.T("Trésor", "Treasure", "Tesoro", "Сокровище")}</th></tr>");
+            foreach (var f in friendFinds.Take(20))
+            {
+                sb.Append($"<tr class=\"r\"><td class=\"nw num items\">{L.DateTimeShort(When(f.Match))}</td><td>{H(f.Friend)}</td><td class=\"items\">{H(TreasureNames.Friendly(f.PrizeId))}</td></tr>");
+            }
+            sb.Append("</table></div></section>");
+        }
 
         // By chest type (with the other interactions, not in the total) | where the player's treasures come from.
         var byKind = matches.SelectMany(m => m.Chests).GroupBy(c => ChestKinds.Canonical(c.Kind)).OrderByDescending(g => g.Count()).ToList();

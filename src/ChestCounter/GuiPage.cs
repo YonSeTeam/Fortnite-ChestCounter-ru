@@ -80,6 +80,12 @@ public static class GuiPage
             "Tras cada partida tu contador envía al servidor tu Epic ID, tu nombre, tu número de cofres y los Epic ID de tus compañeros. Recibes la cifra exacta de un compañero solo si os habéis declarado mutuamente en esa partida. Desactivado por defecto.",
             "После каждого матча счётчик отправляет на сервер твой Epic ID, ник, число сундуков и Epic ID напарников. Точное число напарника ты получаешь, только если вы оба указали друг друга в этом матче. По умолчанию выключено."),
         ["onlineSwitch"] = L.T("Échanger en ligne avec les coéquipiers", "Exchange online with teammates", "Intercambiar en línea con compañeros", "Обмениваться онлайн с напарниками"),
+        ["onlineRewards"] = L.T("Partager aussi mes trésors obtenus", "Also share the treasures I obtain", "Compartir también los tesoros que obtengo", "Делиться и полученными наградами"),
+        ["onlineRewardsHelp"] = L.T("Tes amis voient les trésors que tu obtiens dans les parties jouées ensemble (le nombre de coffres est toujours partagé). Désactivé par défaut.",
+            "Your friends see the treasures you obtain in the matches you play together (the chest count is always shared). Off by default.",
+            "Tus amigos ven los tesoros que obtienes en las partidas jugadas juntos (el número de cofres siempre se comparte). Desactivado por defecto.",
+            "Твои друзья видят награды, которые ты получил в общих матчах (число сундуков делится всегда). По умолчанию выключено."),
+        ["friendsFinds"] = L.T("{0} trésors de tes amis", "{0} treasures from your friends", "{0} tesoros de tus amigos", "наград от друзей: {0}"),
         ["onlineServer"] = L.T("Adresse du serveur (https://…)", "Server address (https://…)", "Dirección del servidor (https://…)", "Адрес сервера (https://…)"),
         ["onlineNoServer"] = L.T("Aucun serveur configuré : saisis son adresse.", "No server configured: type its address.", "No hay servidor configurado: escribe su dirección.", "Сервер не задан: введи его адрес."),
         ["onlineLastOk"] = L.T("Dernier échange : {0} · parties envoyées : {1}", "Last exchange: {0} · matches sent: {1}", "Último intercambio: {0} · partidas enviadas: {1}", "Последний обмен: {0} · отправлено матчей: {1}"),
@@ -359,7 +365,7 @@ public static class GuiPage
           h+=`<section class="tiles"><div class="tile hero"><button type="button" class="editbtn" onclick="openManual()" title="${esc(T.editChests)}" aria-label="${esc(T.editChests)}">__PENCIL__</button><div class="l">${esc(T.total)}</div><div class="v num">${esc(S.total)}</div><div class="l">${esc(T.totalSub)}${S.manual?'<br>'+esc(fmt(T.byHand,S.manualText.replace('+',''))):''}</div></div>
             <div class="tile"><div class="v num">${esc(S.session)}</div><div class="l">${esc(T.session)} · ${esc(S.sessionMatches)} ${esc(T.matches)}</div></div>
             <div class="tile"><div class="v num">${esc(S.last?S.last.chests:'—')}</div><div class="l">${esc(T.last)}${S.last?'<br>'+esc(S.last.when)+' · '+esc(S.last.mode):''}</div></div>
-            ${S.friends?`<div class="tile"><div class="v num">${esc(S.friends.total)}</div><div class="l">${esc(T.friends)}<br>${esc(fmt(T.friendsSub,S.friends.chests))}</div></div>`:''}
+            ${S.friends?`<div class="tile"><div class="v num">${esc(S.friends.total)}</div><div class="l">${esc(T.friends)}<br>${esc(fmt(T.friendsSub,S.friends.chests))}${S.friends.finds>0?'<br>'+esc(fmt(T.friendsFinds,S.friends.finds)):''}</div></div>`:''}
             ${S.squad?`<div class="tile"><div class="v num">${esc(S.squad.total)}</div><div class="l">${esc(T.squad)}<span class="badge" title="${esc(T.inaccurateWhy)}">${esc(T.inaccurate)}</span><br>${esc(fmt(T.squadSub,S.squad.team))}${S.squad.exact>0?'<br>'+esc(fmt(T.shareExact,S.squad.exact,S.squad.of)):''}</div></div>`:''}
             <div class="tile"><div class="v num">★ ${esc(S.treasures)}</div><div class="l">${esc(T.treasures)} · ${esc(S.matches)} ${esc(T.matches)} · ${esc(fmt(T.perMatch,S.average))}</div></div></section>`;
           h+=shareCard(T);
@@ -376,6 +382,7 @@ public static class GuiPage
           const o=S.online,q=S.squadShare;if(!o)return '';
           return `<section><h2 class="pirate">${esc(T.onlineTitle)}</h2><div class="card">
             <div class="row"><div><div class="t">${esc(T.onlineSwitch)}</div><div class="h">${esc(T.onlineHelp)}</div></div><div>${sw('onl',o.enabled,'onlineEnabled')}</div></div>
+            ${o.enabled?`<div class="row"><div><div class="t">${esc(T.onlineRewards)}</div><div class="h">${esc(T.onlineRewardsHelp)}</div></div><div>${sw('onr',o.shareRewards,'onlineShareRewards')}</div></div>`:''}
             ${o.builtIn&&!o.customServer?'':`<div class="actions" style="margin-top:6px"><input type="text" id="onsrv" value="${esc(o.customServer)}" placeholder="${esc(T.onlineServer)}" aria-label="${esc(T.onlineServer)}"><button class="b" onclick="saveServer()">${esc(T.save)}</button></div>`}
             ${o.enabled&&!o.serverSet?`<div class="estimate" style="color:var(--warn)">${esc(T.onlineNoServer)}</div>`:''}
             ${o.enabled&&o.serverSet&&q&&q.hasTeammates?`<div class="mtotal" style="margin-top:10px">${esc(fmt(T.shareCoverage,q.exact,q.of))}</div>`:''}

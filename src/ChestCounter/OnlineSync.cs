@@ -27,6 +27,9 @@ public static class OnlineSync
 
     private sealed record Result(string? Error, List<SquadCard>? Cards, List<string>? Uploaded);
 
+    /// <summary>What was sent for a match is remembered with its flavour: "id" (chests only) or "id+r" (with rewards).</summary>
+    private static string SentKey(string match, bool rewards) => rewards ? match + "+r" : match;
+
     private static readonly ConcurrentQueue<Result> Results = new();
     private static int _busy;
     private static DateTime _nextFetchUtc = DateTime.MinValue;
@@ -73,9 +76,14 @@ public static class OnlineSync
             _lastOk = DateTime.UtcNow;
             if (r.Uploaded is { Count: > 0 })
             {
-                foreach (var id in r.Uploaded.Where(id => !data.OnlineSent.Contains(id)))
+                foreach (var sentKey in r.Uploaded)
                 {
-                    data.OnlineSent.Add(id);
+                    // the other flavour of the same match is replaced on the server: forget it here
+                    data.OnlineSent.Remove(sentKey.EndsWith("+r", StringComparison.Ordinal) ? sentKey[..^2] : sentKey + "+r");
+                    if (!data.OnlineSent.Contains(sentKey))
+                    {
+                        data.OnlineSent.Add(sentKey);
+                    }
                 }
                 _sent += r.Uploaded.Count;
                 store.SaveData(data);
@@ -110,9 +118,10 @@ public static class OnlineSync
             }
 
             // Matches of the player (their own replays), finished, not sent yet.
+            var rewards = config.ShareRewards;
             var toSend = data.Matches
-                .Where(m => IsRecent(m, UploadWindow) && !data.OnlineSent.Contains(m.SessionId))
-                .Select(m => (Match: m, Card: Squad.Build(m)))
+                .Where(m => IsRecent(m, UploadWindow) && !data.OnlineSent.Contains(SentKey(m.SessionId, rewards)))
+                .Select(m => (Match: m, Card: Squad.Build(m, rewards)))
                 .Where(x => x.Card != null)
                 .OrderBy(x => When(x.Match))
                 .Take(20)
@@ -126,8 +135,9 @@ public static class OnlineSync
                 chests = x.Card.Chests,
                 destroyed = x.Card.Destroyed,
                 mates = Humans(x.Match).Select(t => t.EpicId!).Distinct().ToArray(),
+                finds = x.Card.Finds ?? new List<string>(),
             }).ToList();
-            uploadIds = toSend.Select(x => x.Card!.Match).ToList();
+            uploadIds = toSend.Select(x => SentKey(x.Card!.Match, rewards)).ToList();
 
             // Fetch while a recent match still has a teammate without an exact count: often right after the match
             // (the teammate's counter finishes about as quickly), then now and then for the next two days.
@@ -195,6 +205,8 @@ public static class OnlineSync
                                 Name = c.TryGetProperty("name", out var n) ? n.GetString() ?? "" : "",
                                 Chests = c.GetProperty("chests").GetInt32(),
                                 Destroyed = c.GetProperty("destroyed").GetInt32(),
+                                Finds = c.TryGetProperty("finds", out var f) && f.ValueKind == JsonValueKind.Array
+                                    ? f.EnumerateArray().Select(x => x.GetString() ?? "").ToList() : null,
                             });
                         }
                     }

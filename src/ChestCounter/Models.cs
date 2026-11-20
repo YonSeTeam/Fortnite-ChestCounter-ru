@@ -229,6 +229,9 @@ public sealed class Config
 
     /// <summary>Random secret of this installation: proves to the server that an Epic id is still used from the same installation. Never shown.</summary>
     public string? OnlineKey { get; set; }
+
+    /// <summary>Online build only: also share the treasures obtained in each match with the teammates (the chest count is always shared). Off by default.</summary>
+    public bool ShareRewards { get; set; }
 }
 
 public sealed class TrackerData
