@@ -522,6 +522,20 @@ while (!quit)
         }
     }
 
+    // Online build, when turned on: send the finished matches, fetch the teammates' counts (does nothing otherwise).
+    try
+    {
+        if (OnlineSync.Tick(config, data, store))
+        {
+            ReportWriter.WriteAll(store, config, data);
+            UpdateOverlay(store, config, data, tracker.LiveMatch, tracker.IsLive);
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine(L.T($"Erreur d'échange en ligne : {ex.Message}", $"Online exchange error: {ex.Message}", $"Error del intercambio en línea: {ex.Message}", $"Ошибка онлайн-обмена: {ex.Message}"));
+    }
+
     if (quit)
     {
         break;
@@ -529,6 +543,10 @@ while (!quit)
 
     // Sleep until something happens (file change, action from the window) or the next scheduled scan.
     var wait = nextScan - DateTime.UtcNow;
+    if (OnlineSync.Available && config.OnlineEnabled && wait > TimeSpan.FromSeconds(15))
+    {
+        wait = TimeSpan.FromSeconds(15); // the online exchange checks in again soon (it throttles itself)
+    }
     if (wait > TimeSpan.Zero && wake.WaitOne(wait))
     {
         // A file change: check again within 2 s (the readiness checks decide when a replay is complete).
@@ -651,7 +669,7 @@ string? UninstallNow(bool deleteData)
 {
     if (!OperatingSystem.IsWindows() || AppInfo.ExePath is not { } exe)
     {
-        return "ChestCounter.exe";
+        return AppInfo.ExeName;
     }
     // Nothing may start again: no entry at Windows logon, no standby (it would keep the exe in use).
     FortniteWatch.Apply(false, dataDir);
@@ -910,6 +928,8 @@ object BuildGuiState()
     };
     var progress = ReportWriter.Progress;
     var squadCoverage = Squad.Coverage(view.Matches, view.SquadCards);
+    var exactChests = Squad.ExactChests(view.Matches, view.SquadCards);
+    var onlineStatus = OnlineSync.Status(config);
     return new
     {
         txt = GuiPage.Texts(),
@@ -944,6 +964,18 @@ object BuildGuiState()
         sessionMatches = L.N(session.Count),
         last = last == null ? null : new { chests = L.N(last.ChestsOpened), when = L.DateTimeShort(L.Shown(last.MatchStartUtc ?? last.AnalyzedAtUtc)), mode = Pretty.Playlist(last.Playlist) },
         squad = config.ShowSquadTotal && view.TeamChests > 0 ? new { total = L.N(view.SquadChests), team = L.N(view.TeamChests), exact = L.N(squadCoverage.Exact), of = L.N(squadCoverage.Total) } : null,
+        // You + the teammates who handed an exact count over (a code or the online exchange).
+        friends = squadCoverage.Exact > 0 ? new { total = L.N(view.TotalChests + exactChests), chests = L.N(exactChests) } : null,
+        online = !OnlineSync.Available ? null : (object)new
+        {
+            enabled = config.OnlineEnabled,
+            serverSet = OnlineSync.Server(config) != null,
+            customServer = config.OnlineServer ?? "",
+            builtIn = OnlineSync.DefaultServer.Length > 0,
+            error = onlineStatus.Error,
+            lastOk = onlineStatus.LastOkUtc is { } ok ? L.DateTimeShort(L.Shown(ok)) : null,
+            sent = onlineStatus.Sent,
+        },
         // Exchange of squad cards (exact counts of teammates): can the player send one, how many teammates are exact.
         squadShare = new
         {
@@ -1165,6 +1197,33 @@ object? RunGuiAction(string name, System.Text.Json.JsonElement value)
                 ReportWriter.WriteAll(store, config, data);
             }
             settingsChanged = false;
+            break;
+        case "onlineEnabled":
+            if (OnlineSync.Available)
+            {
+                config.OnlineEnabled = Bool();
+            }
+            else
+            {
+                settingsChanged = false;
+            }
+            break;
+        case "onlineServer":
+            settingsChanged = false;
+            if (OnlineSync.Available)
+            {
+                var before = config.OnlineServer;
+                config.OnlineServer = Str().Trim();
+                if (config.OnlineServer.Length > 0 && OnlineSync.Server(config) == null)
+                {
+                    config.OnlineServer = before;
+                    result = new { error = L.T("Adresse invalide : https:// requis.", "Invalid address: https:// is required.", "Dirección no válida: se requiere https://.", "Неверный адрес: нужен https://.") };
+                }
+                else
+                {
+                    store.SaveConfig(config);
+                }
+            }
             break;
         case "squadExport":
         {

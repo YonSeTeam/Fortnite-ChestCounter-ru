@@ -9,17 +9,26 @@ public static class AppInfo
 
     public const string Repo = "LED-N/Fortnite-ChestCounter";
     /// <summary>Where the Russian build looks for its own updates (releases of this fork); live data and pictures still come from <see cref="Repo"/>.</summary>
-    public const string UpdateRepo = "Arseniy07955/Fortnite-ChestCounter-ru";
+    public const string UpdateRepo = "YonSeTeam/Fortnite-ChestCounter-ru";
     public static string RepoUrl => "https://github.com/" + Repo;
     public static string IssuesUrl => RepoUrl + "/issues";
 
-    /// <summary>Path of ChestCounter.exe when running as the published exe (null under "dotnet ChestCounter.dll").</summary>
+    /// <summary>Name of the published exe, which is also the name of the release asset this build updates from.</summary>
+#if ONLINE
+    public const string ExeName = "ChestCounter-Online.exe";
+    public const bool IsOnlineBuild = true;
+#else
+    public const string ExeName = "ChestCounter.exe";
+    public const bool IsOnlineBuild = false;
+#endif
+
+    /// <summary>Path of the published exe (<see cref="ExeName"/>); null under "dotnet ChestCounter.dll".</summary>
     public static string? ExePath
     {
         get
         {
             var p = Environment.ProcessPath;
-            return p != null && Path.GetFileName(p).Equals("ChestCounter.exe", StringComparison.OrdinalIgnoreCase) ? p : null;
+            return p != null && Path.GetFileName(p).Equals(ExeName, StringComparison.OrdinalIgnoreCase) ? p : null;
         }
     }
 

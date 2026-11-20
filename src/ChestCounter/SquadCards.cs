@@ -125,6 +125,12 @@ public static class Squad
     public static SquadImportResult Import(TrackerData d, string? text)
     {
         var cards = Decode(text, out var bad);
+        return ImportCards(d, cards, bad);
+    }
+
+    /// <summary>Same checks for cards that did not come from a pasted code (the online exchange).</summary>
+    public static SquadImportResult ImportCards(TrackerData d, IEnumerable<SquadCard> cards, int bad = 0)
+    {
         int added = 0, updated = 0, unchanged = 0, noMatch = 0, notSquad = 0, own = 0, invalid = 0;
         var seen = new HashSet<string>();
         foreach (var card in cards)
@@ -176,6 +182,10 @@ public static class Squad
         }
         return new SquadImportResult(added, updated, unchanged, noMatch, notSquad, own, invalid, bad);
     }
+
+    /// <summary>Chests of the teammates who handed an exact count over (what "you + your friends" adds to your own total).</summary>
+    public static int ExactChests(IEnumerable<MatchRecord> matches, IReadOnlyList<SquadCard> cards) =>
+        matches.Sum(m => m.TeamChests.Sum(t => CardFor(cards, m, t)?.Chests ?? 0));
 
     /// <summary>The card of a teammate for a match, when one was imported.</summary>
     public static SquadCard? CardFor(IReadOnlyList<SquadCard> cards, MatchRecord m, TeamChestCount mate)

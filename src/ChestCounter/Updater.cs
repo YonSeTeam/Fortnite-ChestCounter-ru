@@ -138,7 +138,7 @@ public static class Updater
             }
             foreach (var asset in root.GetProperty("assets").EnumerateArray())
             {
-                if (!string.Equals(asset.GetProperty("name").GetString(), "ChestCounter.exe", StringComparison.OrdinalIgnoreCase))
+                if (!string.Equals(asset.GetProperty("name").GetString(), AppInfo.ExeName, StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
                 }
@@ -231,7 +231,7 @@ public static class Updater
         {
             return;
         }
-        foreach (var f in Directory.EnumerateFiles(dir, "ChestCounter.exe.*"))
+        foreach (var f in Directory.EnumerateFiles(dir, AppInfo.ExeName + ".*"))
         {
             if (f.EndsWith(".old", StringComparison.OrdinalIgnoreCase) || f.EndsWith(".download", StringComparison.OrdinalIgnoreCase))
             {
